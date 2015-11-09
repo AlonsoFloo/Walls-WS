@@ -43,20 +43,37 @@ class API extends Rest_Rest {
 //This method dynmically call the method based on the query string
     public function processApi() {
         if(isset($_REQUEST['request'])){
-            $func = strtolower(trim(str_replace("/", "", $_REQUEST['request'])));
+            $arrayURL=explode("/",strtolower(trim($_REQUEST['request'])));
+            if(sizeof($arrayURL)>0){
+                $func=$arrayURL[0];
+                if(sizeof($arrayURL)==1){
+                    if ((int) method_exists($this, $func) > 0){
+                        $this->$func();
+                    }
+                }else if(sizeof($arrayURL)==2){
+                    $id=(int)$arrayURL[1];
+                    if(is_int($id)){
+                        if ((int) method_exists($this, $func) > 0){
+                            $this->$func($id);
+                        }
+                    }
+                }  
+            }else{
+                $this->response('', 404);
+            }
+            /*$func = strtolower(trim(str_replace("/", "", $_REQUEST['request'])));
             if ((int) method_exists($this, $func) > 0){
                 $this->$func();
             }
-            else
+            else{
                 $this->response('', 404);
+            }*/
         }
 // If the method not exist with in this class, response would be "Page not found".
     }
 
     private function walls() {
 // Cross validation if the request method is GET else it will return "Not Acceptable" status
-        //echo "ici";
-        //var_dump("ici2");
         if ($this->get_request_method() != "GET") {
             $this->response('', 406);
         }
@@ -64,6 +81,7 @@ class API extends Rest_Rest {
         $result = $this ->db
                         ->query("SELECT * FROM `wall`");         
         if($result){
+            $arrayResult=array();
             while($row = $result->fetch_assoc()){
                 $arrayResult[]=$row;
             }
@@ -71,6 +89,30 @@ class API extends Rest_Rest {
             $this->response($json, 200);
         }else{
             $this->response('', 204); // If no records "No Content" status*/
+        }
+    }
+    
+    private function messages($id=null) {
+        // Cross validation if the request method is GET else it will return "Not Acceptable" status
+        if ($this->get_request_method() != "GET") {
+            $this->response('', 406);
+        }
+        if(isset($id)){
+            $r='SELECT * FROM `message` where idWall='.$id.';';
+        }else{
+            $r='SELECT * FROM `message`;';
+        }
+        $result = $this ->db
+                        ->query($r);         
+        if($result){
+            $arrayResult=array();
+            while($row = $result->fetch_assoc()){
+                $arrayResult[]=$row;
+            }
+            $json=$this->json($arrayResult);
+            $this->response($json, 200);
+        }else{
+            $this->response('', 204); // If no records "No Content" status
         }
     }
 
