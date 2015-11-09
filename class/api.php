@@ -18,12 +18,6 @@ class API extends Rest_Rest {
 
     public $data = "";
 
-    /*const DB_SERVER = "mysql.montpellier.epsi.fr";
-    const DB_USER = "nicolas.guigui";
-    const DB_PASSWORD = "epsi491YYK";
-    const DB = "walls";
-    const DB_PORT = "5206";*/
-
     private $db = NULL;
 
     public function __construct() {
@@ -33,10 +27,7 @@ class API extends Rest_Rest {
 
 //Database connection
     private function dbConnect() {
-        //$this->db = mysql_connect(self::DB_SERVER, self::DB_USER, self::DB_PASSWORD, self::DB, self::DB_PORT);
         $this->db = new mysqli(DB_SERVER, DB_USER, DB_PASSWORD, DB, DB_PORT);
-        //if ($this->db)
-            //mysql_select_db(self::DB, $this->db);
     }
 
 //Public method for access api.
@@ -51,6 +42,7 @@ class API extends Rest_Rest {
                     //détécter si il y a des paramètres envoyé en JSON
                     if(!empty($raw)){
                         $json=$this->unJson($raw);
+                        //var_dump($json);
                         if((int) method_exists($this, $func) > 0){
                             $this->$func($json);
                         }
@@ -73,14 +65,17 @@ class API extends Rest_Rest {
         }
     }
 
-    private function walls() {
-// Cross validation if the request method is GET else it will return "Not Acceptable" status
-        if ($this->get_request_method() != "GET") {
+    private function walls($id=null) {
+        if ($this->get_request_method() != "GET" && $this->get_request_method() != "POST") {
             $this->response('', 406);
         }
-        //$sql = mysql_query("SELECT * FROM `wall`", $this->db);
+        if(isset($id)){
+            $r='SELECT * FROM `wall` where id='.$id.';';
+        }else{
+            $r='SELECT * FROM `wall`;';
+        }
         $result = $this ->db
-                        ->query("SELECT * FROM `wall`");         
+                        ->query($r);         
         if($result){
             $arrayResult=array();
             while($row = $result->fetch_assoc()){
@@ -149,11 +144,15 @@ class API extends Rest_Rest {
             $bottomRightLon=$coord->{'bottomRight'}->{'lon'};
             //$bottomLeftLat=$coord->{'bottomLeft'}->{'lat'};
             //$bottomLeftLon=$coord->{'bottomLeft'}->{'lon'};
-            $r='SELECT * '
-             . 'FROM `wall` '
-             . 'where latitude between '.$bottomRightLeft.' and '.$topLeftLat
-             . ' and longitude between '.$topRightLon.' and '.$bottomRightLon.';';
-            //echo ($r);
+            $r='SELECT w.*, sum(m.like) as sommeLike'
+             . ' FROM wall w' 
+             . ' left join message m on w.id=m.idWall'
+             . ' where w.latitude between '.$bottomRightLeft.' and '.$topLeftLat
+             . ' and w.longitude between '.$topRightLon.' and '.$bottomRightLon
+             . ' group by m.idWall'
+             . ' order by sommeLike desc'
+             . ' LIMIT 100;';
+            echo ($r);
             $result = $this ->db
                             ->query($r); 
             if($result){
@@ -164,6 +163,7 @@ class API extends Rest_Rest {
                 $json=$this->json($arrayResult);
                 $this->response($json, 200);
             }else{
+               
                 $this->response('', 204); // If no records "No Content" status
             }
         }else{
@@ -171,6 +171,66 @@ class API extends Rest_Rest {
         }   
     }
     
+    /*
+        {
+            "nom": "EPSI Montpellier",
+            "latitude": "43.642057000000000000000000000000",
+            "longitude": "3.838275000000000000000000000000",
+            "distance": "30",
+            "created": "1445854190",
+            "description": "Mur de l'EPSI Montpellier taactac"
+        }
+     */
+    private function insertWall($wall=null){
+        if ($this->get_request_method() != "POST") {
+            $this->response('', 406);
+        }
+        //var_dump($wall);
+        if(isset($wall)){
+            $nom=addslashes($wall->{'nom'});
+            $latitude=$wall->{'latitude'};
+            $longitude=$wall->{'longitude'};
+            $distance=$wall->{'distance'};
+            $created=$wall->{'created'};
+            $description=addslashes($wall->{'description'});
+            
+            if(isset($nom) && isset($latitude) && isset($longitude) && isset($distance)){
+                
+                $r='INSERT INTO `wall`('
+                                    . '`nom`, '
+                                    . '`latitude`, '
+                                    . '`longitude`, '
+                                    . '`distance`, '
+                                    . '`created`, '
+                                    . '`alert`, '
+                                    . '`description`) '
+                                    . 'VALUES ('
+                                    . "'".$nom."',"
+                                    . $latitude.','
+                                    . $longitude.','
+                                    . $distance.','
+                                    . $created.','
+                                    . '0,'
+                                    . "'".$description."');";
+                //echo $r;
+                $result = $this ->db
+                                ->query($r); 
+                if($result){
+                     $resultID = $this  ->db
+                                        ->query('SELECT MAX( id ) as id FROM wall'); 
+                     if($resultID){
+                         $row = $resultID->fetch_assoc();
+                         //var_dump($row);
+                         $DernierID=$row['id'];
+                         //var_dump($DernierID);
+                         $this->walls($DernierID);
+                     }
+                }else{
+                   $this->response("Erreur lors de l'insertion du mur, vérifiez votre JSON" , 400); 
+                }
+            }
+        }       
+    }
 
 //Encode array into JSON
     private function json($data) {
