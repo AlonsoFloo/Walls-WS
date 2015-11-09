@@ -90,11 +90,12 @@ class API extends Rest_Rest {
     
     private function messages($id=null) {
         // Cross validation if the request method is GET else it will return "Not Acceptable" status
-        if ($this->get_request_method() != "GET") {
+        if ($this->get_request_method() != "GET" && $this->get_request_method() != "POST") {
             $this->response('', 406);
         }
         if(isset($id)){
             $r='SELECT * FROM `message` where idWall='.$id.';';
+            echo $r;
         }else{
             $r='SELECT * FROM `message`;';
         }
@@ -152,7 +153,7 @@ class API extends Rest_Rest {
              . ' group by m.idWall'
              . ' order by sommeLike desc'
              . ' LIMIT 100;';
-            echo ($r);
+            //echo ($r);
             $result = $this ->db
                             ->query($r); 
             if($result){
@@ -194,7 +195,7 @@ class API extends Rest_Rest {
             $created=$wall->{'created'};
             $description=addslashes($wall->{'description'});
             
-            if(isset($nom) && isset($latitude) && isset($longitude) && isset($distance)){
+            if(isset($nom) && isset($latitude) && isset($longitude) && isset($created) && isset($distance)){
                 
                 $r='INSERT INTO `wall`('
                                     . '`nom`, '
@@ -227,6 +228,75 @@ class API extends Rest_Rest {
                      }
                 }else{
                    $this->response("Erreur lors de l'insertion du mur, vérifiez votre JSON" , 400); 
+                }
+            }
+        }       
+    }
+    
+    /*
+     * 
+        {
+            "idWall": "1",
+            "isImage": "0",
+            "content": "C'est mon message",
+            "latitude": "0.4333", 
+            "longitude": "0.3",         
+            "created": "1445854190",
+            "description": "Description de mon message"
+        }
+     */
+    private function insertMessage($message=null){
+        if ($this->get_request_method() != "POST") {
+            $this->response('', 406);
+        }
+        //var_dump($wall);
+        if(isset($message)){
+            $idWall=addslashes($message->{'idWall'});
+            $isImage=$message->{'isImage'};
+            $content=$message->{'content'};
+            $latitude=$message->{'latitude'};
+            $longitude=$message->{'longitude'};
+            $created=$message->{'created'};
+            $description=addslashes($message->{'description'});
+            //var_dump("ici");
+            if(isset($idWall) && isset($isImage) && isset($content) && isset($latitude) && isset($longitude) && isset($created)){
+                
+                $r='INSERT INTO `message`(                                      
+                                        `idWall`, 
+                                        `like`, 
+                                        `isImage`, 
+                                        `content`, 
+                                        `latitude`, 
+                                        `longitude`, 
+                                        `alert`, 
+                                        `created`, 
+                                        `description`) 
+                                VALUES (                           
+                                        '.$idWall.',
+                                        0,
+                                        '.$isImage.',
+                                        "'.$content.'",
+                                        '.$latitude.',
+                                        '.$longitude.',
+                                        0,
+                                        '.$created.',
+                                        "'.$description.'");';
+                        
+                //echo $r;
+                $result = $this ->db
+                                ->query($r); 
+                if($result){
+                     $resultID = $this  ->db
+                                        ->query('SELECT MAX( id ) as id FROM message'); 
+                     if($resultID){
+                         $row = $resultID->fetch_assoc();
+                         //var_dump($row);
+                         $DernierID=$row['id'];
+                         //var_dump($DernierID);
+                         $this->messages($DernierID);
+                     }
+                }else{
+                   $this->response("Erreur lors de l'insertion du message, vérifiez votre JSON" , 400); 
                 }
             }
         }       
