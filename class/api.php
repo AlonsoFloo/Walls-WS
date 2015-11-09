@@ -22,6 +22,7 @@ class API extends Rest_Rest {
     const DB_USER = "nicolas.guigui";
     const DB_PASSWORD = "epsi491YYK";
     const DB = "walls";
+    const DB_PORT = "5206";
 
     private $db = NULL;
 
@@ -32,45 +33,53 @@ class API extends Rest_Rest {
 
 //Database connection
     private function dbConnect() {
-        $this->db = mysql_connect(self::DB_SERVER, self::DB_USER, self::DB_PASSWORD);
-        if ($this->db)
-            mysql_select_db(self::DB, $this->db);
+        //$this->db = mysql_connect(self::DB_SERVER, self::DB_USER, self::DB_PASSWORD, self::DB, self::DB_PORT);
+        $this->db = new mysqli(self::DB_SERVER, self::DB_USER, self::DB_PASSWORD, self::DB, self::DB_PORT);
+        //if ($this->db)
+            //mysql_select_db(self::DB, $this->db);
     }
 
 //Public method for access api.
 //This method dynmically call the method based on the query string
     public function processApi() {
-        $func = strtolower(trim(str_replace("/", "", $_REQUEST['rquest'])));
-        if ((int) method_exists($this, $func) > 0)
-            $this->$func();
-        else
-            $this->response('', 404);
+        if(isset($_REQUEST['request'])){
+            $func = strtolower(trim(str_replace("/", "", $_REQUEST['request'])));
+            if ((int) method_exists($this, $func) > 0){
+                $this->$func();
+            }
+            else
+                $this->response('', 404);
+        }
 // If the method not exist with in this class, response would be "Page not found".
     }
 
     private function walls() {
 // Cross validation if the request method is GET else it will return "Not Acceptable" status
+        //echo "ici";
+        //var_dump("ici2");
         if ($this->get_request_method() != "GET") {
             $this->response('', 406);
         }
-        $sql = mysql_query("SELECT * FROM `wall`", $this->db);
-        if (mysql_num_rows($sql) > 0) {
-            $result = array();
-            while ($rlt = mysql_fetch_array($sql, MYSQL_ASSOC)) {
-                $result[] = $rlt;
+        //$sql = mysql_query("SELECT * FROM `wall`", $this->db);
+        $result = $this ->db
+                        ->query("SELECT * FROM `wall`");         
+        if($result){
+            while($row = $result->fetch_assoc()){
+                $arrayResult[]=$row;
             }
-// If success everythig is good send header as "OK" and return list of users in JSON format
-            $this->response($this->json($result), 200);
+            $json=$this->json($arrayResult);
+            $this->response($json, 200);
+        }else{
+            $this->response('', 204); // If no records "No Content" status*/
         }
-        $this->response('', 204); // If no records "No Content" status
     }
 
     private function users() {
-//..............
+           echo "user";
     }
 
     private function deleteUser() {
-//............
+
     }
 
 //Encode array into JSON

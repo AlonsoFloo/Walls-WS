@@ -2,7 +2,7 @@
 RewriteEngine On
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteCond %{REQUEST_FILENAME} !-s
-RewriteRule ^(.*)$ class/api.php?rquest=$1 [QSA,NC,L]
+RewriteRule ^(.*)$ class/api.php?request=$1 [QSA,NC,L]
 
 RewriteCond %{REQUEST_FILENAME} -d
 RewriteRule ^(.*)$ class/api.php [QSA,NC,L]
