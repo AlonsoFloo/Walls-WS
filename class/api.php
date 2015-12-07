@@ -122,7 +122,7 @@ class API extends Rest_Rest {
         if ($this->get_request_method() != "GET" && $this->get_request_method() != "POST") {
             $this->response('', 406);
         }
-        $nb_message_par_page=10;
+        $nb_message_par_page=30;
         $limit=" LIMIT 0,10";
         if(isset($id)){
             if(isset($page) && $page>=0){
