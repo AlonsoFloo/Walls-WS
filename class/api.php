@@ -50,6 +50,7 @@ class API extends Rest_Rest {
                         $this->$func();
                     }
                 }else if(sizeof($arrayURL)==2){
+                    //var_dump($arrayURL);
                     $parameter=$arrayURL[1];
                     $id=(int)$arrayURL[1];
                     if(is_int($id)){
@@ -58,6 +59,17 @@ class API extends Rest_Rest {
                         }
                     }
                 }  
+                else if(sizeof($arrayURL)==3){
+                    //var_dump($arrayURL);
+                    $parameter=$arrayURL[1];
+                    $id=(int)$arrayURL[1];
+                    $param=(int)$arrayURL[2];
+                    if(is_int($id)){
+                        if ((int) method_exists($this, $func) > 0){
+                            $this->$func($id, $param);
+                        }
+                    }
+                } 
             }else{
                 $this->response('', 404);
             }
@@ -70,7 +82,23 @@ class API extends Rest_Rest {
             $this->response('', 406);
         }
         if(isset($id)){
-            $r='SELECT * FROM `wall` where id='.$id.';';
+            if(!is_array($id)){
+                $r='SELECT * FROM `wall` where id='.$id.';';
+            }
+            else{
+                //var_dump($id);
+                $sous_r='';
+                foreach ($id as $key => $value) {
+                    $union='';
+                    if($key!=0){
+                        $union=' or ';
+                    }
+                    $sous_r.=$union.' id='.$value;
+                }
+                $r='SELECT * FROM `wall` where '.$sous_r.';';
+                //var_dump($r);
+                //$r='SELECT * FROM `wall`';
+            }
         }else{
             $r='SELECT * FROM `wall`;';
         }
@@ -88,14 +116,29 @@ class API extends Rest_Rest {
         }
     }
     
-    private function messages($id=null) {
+    private function messages($id=null, $page=null) {
+        //var_dump($id."  ".$page);
         // Cross validation if the request method is GET else it will return "Not Acceptable" status
         if ($this->get_request_method() != "GET" && $this->get_request_method() != "POST") {
             $this->response('', 406);
         }
+        $nb_message_par_page=10;
+        $limit=" LIMIT 0,10";
         if(isset($id)){
-            $r='SELECT * FROM `message` where idWall='.$id.';';
-            echo $r;
+            if(isset($page) && $page>=0){
+                $debut=$page*$nb_message_par_page;
+                $fin=$debut+$nb_message_par_page;
+                $limit=" LIMIT ".$debut.",".$fin;
+                //var_dump($debut." ".$fin);
+                //$page="";
+            }
+            $r='SELECT * FROM `message` where idWall='.$id.$limit.';';
+            if(isset($page) && $page==-1){
+                $r='SELECT * FROM `message` where id='.$id.';';
+            }
+                
+            //var_dump($r);
+            //echo $r;
         }else{
             $r='SELECT * FROM `message`;';
         }
@@ -293,13 +336,61 @@ class API extends Rest_Rest {
                          //var_dump($row);
                          $DernierID=$row['id'];
                          //var_dump($DernierID);
-                         $this->messages($DernierID);
+                         $this->messages($DernierID,-1);
                      }
                 }else{
                    $this->response("Erreur lors de l'insertion du message, vérifiez votre JSON" , 400); 
                 }
             }
         }       
+    }
+    
+    /*
+     * 
+        {
+            "research": "montpellier epsi"
+        }
+     */
+    private function research($research = "") {
+        if ($this->get_request_method() != "POST") {
+            $this->response('', 406);
+        }
+        //var_dump($wall);
+        if (isset($research)) {
+            $recherche = $research->{'research'};
+
+            if (isset($recherche)) {
+                $arrayRecherche = explode(" ", $recherche);
+                //var_dump($arrayRecherche);
+                $sous_r="";
+                foreach($arrayRecherche as $key => $mot){
+                    $union='';
+                    if($key!=0){
+                        $union=' union all ';
+                    }
+                    $sous_r.=$union."(select id from wall where nom LIKE '%$mot%')";
+                    
+                }
+                $r = 'SELECT table_id.id as id, COUNT( * ) as pertinence
+                        FROM ('.$sous_r.') as table_id
+                        GROUP BY table_id.id
+                        ORDER BY pertinence desc, table_id.id asc LIMIT 0,10;';
+                //var_dump($r);
+                $result = $this->db
+                        ->query($r);
+                if ($result) {
+                    $arrayResult = array();
+                    while ($row = $result->fetch_assoc()) {
+                        $arrayResult[] = $row['id'];
+                    }
+                    $this->walls($arrayResult);
+                    //$json = $this->json($arrayResult);
+                    //$this->response($json, 200);
+                } else {
+                    $this->response("Erreur lors de la recherche, vérifiez votre JSON", 400);
+                }
+            }
+        }
     }
 
 //Encode array into JSON
