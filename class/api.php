@@ -197,8 +197,8 @@ class API extends Rest_Rest {
              . ' left join message m on w.id=m.idWall'
              . ' where w.latitude between '.$bottomRightLeft.' and '.$topLeftLat
              . ' and w.longitude between '.$topLeftLon.' and '.$bottomRightLon
-             . ' group by m.idWall'
-             . ' order by sommeLike desc'
+             . ' group by w.id'
+             . ' order by sum(m.like) desc'
              . ' LIMIT 100;';
             //echo ($r);
             $result = $this ->db
