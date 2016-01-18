@@ -78,6 +78,7 @@ class API extends Rest_Rest {
     }
 
     private function walls($id=null) {
+        $this->cacheManager(30);
         if ($this->get_request_method() != "GET" && $this->get_request_method() != "POST") {
             $this->response('', 406);
         }
@@ -117,6 +118,7 @@ class API extends Rest_Rest {
     }
     
     private function messages($id=null, $page=null) {
+        $this->cacheManager(30);
         //var_dump($id."  ".$page);
         // Cross validation if the request method is GET else it will return "Not Acceptable" status
         if ($this->get_request_method() != "GET" && $this->get_request_method() != "POST") {
@@ -176,14 +178,16 @@ class API extends Rest_Rest {
     }
      */
     private function wallsFromCoord($coord=null){
+        $this->cacheManager(1);
+        //$this->cacheManager(30);
         if ($this->get_request_method() != "POST") {
             $this->response('', 406);
         }
         if(isset($coord)){
             $topLeftLat=$coord->{'topLeft'}->{'lat'};
-            //$topLeftLon=$coord->{'topLeft'}->{'lon'};
+            $topLeftLon=$coord->{'topLeft'}->{'lon'};
             //$topRightLat=$coord->{'topRight'}->{'lat'};
-            $topRightLon=$coord->{'topRight'}->{'lon'};
+            //$topRightLon=$coord->{'topRight'}->{'lon'};
             $bottomRightLeft=$coord->{'bottomRight'}->{'lat'};
             $bottomRightLon=$coord->{'bottomRight'}->{'lon'};
             //$bottomLeftLat=$coord->{'bottomLeft'}->{'lat'};
@@ -192,7 +196,7 @@ class API extends Rest_Rest {
              . ' FROM wall w' 
              . ' left join message m on w.id=m.idWall'
              . ' where w.latitude between '.$bottomRightLeft.' and '.$topLeftLat
-             . ' and w.longitude between '.$topRightLon.' and '.$bottomRightLon
+             . ' and w.longitude between '.$topLeftLon.' and '.$bottomRightLon
              . ' group by m.idWall'
              . ' order by sommeLike desc'
              . ' LIMIT 100;';
@@ -226,6 +230,7 @@ class API extends Rest_Rest {
         }
      */
     private function insertWall($wall=null){
+        $this->cacheManager(1);
         if ($this->get_request_method() != "POST") {
             $this->response('', 406);
         }
@@ -289,6 +294,7 @@ class API extends Rest_Rest {
         }
      */
     private function insertMessage($message=null){
+        $this->cacheManager(1);
         if ($this->get_request_method() != "POST") {
             $this->response('', 406);
         }
@@ -352,6 +358,7 @@ class API extends Rest_Rest {
         }
      */
     private function research($research = "") {
+        $this->cacheManager(1);
         if ($this->get_request_method() != "POST") {
             $this->response('', 406);
         }
@@ -395,15 +402,28 @@ class API extends Rest_Rest {
 
 //Encode array into JSON
     private function json($data) {
+        $str='';
         if (is_array($data)) {
-            return json_encode($data);
+            $str= json_encode($data);
+        }else{
+            $str= json_encode(array());
         }
+        return $str;
     }
     
     private function unJson($strData) {
         if (is_string($strData)) {
             return json_decode($strData);
         }
+    }
+    
+    private function cacheManager($seconds_tocache){
+        //$seconds_tocache = $day_tocache * 86400;
+        $ts = gmdate("D, d M Y H:i:s", time() + $seconds_tocache) . " GMT";
+        header("Expires: ". $ts);
+        header("Pragma: cache");
+        header("Cache-Control: max-age=".$seconds_tocache);
+        header("User-Cache-Control: max-age=".$seconds_tocache);
     }
 
 }
