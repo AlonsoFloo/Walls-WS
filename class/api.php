@@ -192,11 +192,14 @@ class API extends Rest_Rest {
             $bottomRightLon=$coord->{'bottomRight'}->{'lon'};
             //$bottomLeftLat=$coord->{'bottomLeft'}->{'lat'};
             //$bottomLeftLon=$coord->{'bottomLeft'}->{'lon'};
+            $centreLon=$coord->{'center'}->{'lon'};
+            $centreLat=$coord->{'center'}->{'lat'};
             $r='SELECT w.*, sum(m.like) as sommeLike'
              . ' FROM wall w' 
              . ' left join message m on w.id=m.idWall'
-             . ' where w.latitude between '.$bottomRightLeft.' and '.$topLeftLat
-             . ' and w.longitude between '.$topLeftLon.' and '.$bottomRightLon
+             . ' where (w.latitude between '.$bottomRightLeft.' and '.$topLeftLat
+             . ' and w.longitude between '.$topLeftLon.' and '.$bottomRightLon.')'
+             . ' OR ((12742000 * atan2( sqrt((POW((sin(('.$centreLat.' - w.latitude)/2)),2) + cos(w.latitude) * cos('.$centreLat.') * POW((sin(('.$centreLon.' - w.longitude)/2)),2))), sqrt(1-(POW((sin(('.$centreLat.' - w.latitude)/2)),2) + cos(w.latitude) * cos('.$centreLat.') * POW((sin(('.$centreLon.' - w.longitude)/2)),2))) ) ) < w.distance)'
              . ' group by w.id'
              . ' order by sum(m.like) desc'
              . ' LIMIT 100;';
