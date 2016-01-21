@@ -313,6 +313,8 @@ class API extends Rest_Rest {
             //var_dump("ici");
             if(isset($idWall) && isset($isImage) && isset($content) && isset($latitude) && isset($longitude) && isset($created)){
                 
+                
+                
                 $r='INSERT INTO `message`(                                      
                                         `idWall`, 
                                         `like`, 
@@ -337,22 +339,39 @@ class API extends Rest_Rest {
                 //echo $r;
                 $result = $this ->db
                                 ->query($r); 
-                if($result){
-                     $resultID = $this  ->db
-                                        ->query('SELECT MAX( id ) as id FROM message'); 
-                     if($resultID){
-                         $row = $resultID->fetch_assoc();
-                         //var_dump($row);
-                         $DernierID=$row['id'];
-                         //var_dump($DernierID);
-                         $this->messages($DernierID,-1);
+                    if($result){
+                        $resultID = $this  ->db
+                                           ->query('SELECT MAX( id ) as id FROM message'); 
+                        if($resultID){
+                            $row = $resultID->fetch_assoc();
+                            //var_dump($row);
+                            $DernierID=$row['id'];
+
+                            if($isImage){
+                                //$image_byte_code = $_REQUEST['o'];
+                                $contentDecode = base64_decode($content);
+                                $im = imagecreatefromstring($contentDecode);
+                                if ($im !== false) {
+                                    $nomFichier=$DernierID.".png";
+                                    if(imagepng ( $im , "../img/".$nomFichier , 0 )){
+                                        $url="http://perso.montpellier.epsi.fr/~nicolas.guigui/wallws/img/".$nomFichier;
+                                        $r="UPDATE message SET content='".$url."' WHERE id=".$DernierID; 
+                                        $this   ->db
+                                                ->query($r); 
+                                    }
+                                }
+                            }
+                        }
+
+                        //var_dump($DernierID);
+                        $this->messages($DernierID,-1);
                      }
                 }else{
                    $this->response("Erreur lors de l'insertion du message, vérifiez votre JSON" , 400); 
                 }
             }
         }       
-    }
+    
     
     /*
      * 
