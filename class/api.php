@@ -352,8 +352,10 @@ class API extends Rest_Rest {
                                 $contentDecode = base64_decode($content);
                                 $im = imagecreatefromstring($contentDecode);
                                 if ($im !== false) {
+                                    imagesavealpha($im, true);
+                                    imagealphablending($im, false);
                                     $nomFichier=$DernierID.".png";
-                                    if(imagepng ( $im , "../img/".$nomFichier , 0 )){
+                                    if(imagepng ( $im , "../img/".$nomFichier , 9 )){
                                         $url="http://perso.montpellier.epsi.fr/~nicolas.guigui/wallws/img/".$nomFichier;
                                         $r="UPDATE message SET content='".$url."' WHERE id=".$DernierID; 
                                         $this   ->db
@@ -417,6 +419,58 @@ class API extends Rest_Rest {
                     //$this->response($json, 200);
                 } else {
                     $this->response("Erreur lors de la recherche, vérifiez votre JSON", 400);
+                }
+            }
+        }
+    }
+    
+    private function like($id = "") {
+        $this->cacheManager(1);
+        if ($this->get_request_method() != "POST") {
+            $this->response('', 406);
+        }
+        //var_dump($wall);
+        if (isset($id)) {
+            $likeId = $id->{'id'};
+
+            if (isset($likeId)) {
+                
+                $r = 'UPDATE message SET `like`=`like`+1 WHERE id ='.$likeId;
+                //var_dump($r);
+                $result = $this->db
+                        ->query($r);
+                if ($result) {
+                    $arrayResult = array();
+                    $json = $this->json($arrayResult);
+                    $this->response($json, 200);
+                } else {
+                    $this->response("Erreur lors du like, vérifiez votre JSON", 400);
+                }
+            }
+        }
+    }
+    
+    private function alert($id = "") {
+        $this->cacheManager(1);
+        if ($this->get_request_method() != "POST") {
+            $this->response('', 406);
+        }
+        //var_dump($wall);
+        if (isset($id)) {
+            $alertId = $id->{'id'};
+
+            if (isset($alertId)) {
+                
+                $r = 'UPDATE message SET alert=alert+1 WHERE id ='.$alertId;
+                //var_dump($r);
+                $result = $this->db
+                        ->query($r);
+                if ($result) {
+                    $arrayResult = array();
+                    $json = $this->json($arrayResult);
+                    $this->response($json, 200);
+                } else {
+                    $this->response("Erreur lors du alert, vérifiez votre JSON", 400);
                 }
             }
         }
